@@ -1,0 +1,203 @@
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <h1 class="dashboard-title">Student Dashboard</h1>
+            <p class="dashboard-subtitle">Welcome back, track your daily progress here.</p>
+        </div>
+        <div class="profile-section">
+            <div class="avatar-circle">{{ dashboardData?.studentName?.charAt(0) || 'S' }}</div>
+            <div class="profile-info">
+                <div class="student-name">{{ dashboardData?.studentName || 'Student' }}</div>
+                <div class="student-id">{{ dashboardData?.rollNumber || 'ID: --' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <div class="filter-header">
+            <i class="fas fa-filter"></i>
+            <span>Filter Records</span>
+        </div>
+        <div class="filter-controls">
+            <div class="filter-group">
+                <label class="filter-label">Academic Year</label>
+                <select class="filter-select" [(ngModel)]="selectedYear">
+                    <option *ngFor="let year of years" [value]="year">{{ year }}</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Semester</label>
+                <select class="filter-select" [(ngModel)]="selectedSemester">
+                    <option *ngFor="let sem of semesters" [value]="sem">
+                        {{ sem === 'All' ? 'All Semesters' : 'Semester ' + sem }}
+                    </option>
+                </select>
+            </div>
+            <div class="filter-action">
+                <button class="search-btn" (click)="onSearch()" [disabled]="isLoading">
+                    <span *ngIf="!isLoading">
+                        <i class="fas fa-search"></i>
+                        Find Records
+                    </span>
+                    <span *ngIf="isLoading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Searching...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="error-alert">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>{{ errorMessage }}</span>
+    </div>
+
+    <!-- LOADING STATE -->
+    <div *ngIf="isLoading" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Fetching your attendance records...</p>
+    </div>
+
+    <!-- DATA CONTENT -->
+    <div *ngIf="!isLoading && dashboardData">
+
+        <!-- CASE 1: DATA EXISTS -->
+        <div *ngIf="dashboardData.courseAttendances && dashboardData.courseAttendances.length > 0">
+
+            <!-- Stats Overview -->
+            <div class="stats-grid">
+                <!-- Profile Summary -->
+                <div class="stat-card primary-card">
+                    <div class="card-content">
+                        <div class="card-header">
+                            <h5>Current Status</h5>
+                            <h2>{{ dashboardData.semester }}</h2>
+                            <p>{{ dashboardData.academicYear }}</p>
+                        </div>
+                        <div class="card-footer">
+                            <div class="stat-value">
+                                <div class="number">{{ dashboardData.courseAttendances.length }}</div>
+                                <div class="label">Active Courses</div>
+                            </div>
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overall Attendance -->
+                <div class="stat-card">
+                    <div class="attendance-circle-container">
+                        <div class="attendance-circle"
+                            [style.background]="'conic-gradient(' + getColor(dashboardData.overallAttendance) + ' ' + dashboardData.overallAttendance + '%, #f8fafc 0)'">
+                            <div class="inner-circle">
+                                <span class="percentage" [style.color]="getColor(dashboardData.overallAttendance)">
+                                    {{ dashboardData.overallAttendance }}%
+                                </span>
+                            </div>
+                        </div>
+                        <h6>Overall Attendance</h6>
+                        <span class="attendance-badge"
+                            [ngClass]="getAttendanceBadgeClass(dashboardData.overallAttendance)">
+                            {{ dashboardData.overallAttendance >= 75 ? 'Excellent' :
+                            (dashboardData.overallAttendance >= 60 ? 'Average' : 'Critical') }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Quick Summary -->
+                <div class="stat-card">
+                    <div class="card-content">
+                        <h6 class="summary-title">Performance Summary</h6>
+                        <div class="summary-item">
+                            <div class="summary-icon success">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="summary-details">
+                                <div class="summary-value">{{ getCoursesAbove(75) }}</div>
+                                <div class="summary-label">Courses Above 75%</div>
+                            </div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-icon warning">
+                                <i class="fas fa-exclamation"></i>
+                            </div>
+                            <div class="summary-details">
+                                <div class="summary-value">{{ getCoursesBelow(75) }}</div>
+                                <div class="summary-label">Need Improvement</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Table -->
+            <div class="table-section">
+                <div class="table-header">
+                    <h5>Subject-wise Detail</h5>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="course-name">Course Name</th>
+                                <th class="course-code">Code</th>
+                                <th class="text-center">Total Classes</th>
+                                <th class="text-center">Attended</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let course of dashboardData.courseAttendances">
+                                <td class="course-info">
+                                    <div class="course-name">{{ course.courseName }}</div>
+                                    <div class="course-code">{{ course.courseCode }}</div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="code-badge">{{ course.courseCode }}</span>
+                                </td>
+                                <td class="text-center">{{ course.totalClasses }}</td>
+                                <td class="text-center">{{ course.attendedClasses }}</td>
+                                <td class="attendance-status">
+                                    <div class="status-container">
+                                        <span class="attendance-percentage"
+                                            [ngClass]="getAttendanceBadgeClass(course.percentage)">
+                                            {{ course.percentage }}%
+                                        </span>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" [style.width.%]="course.percentage"
+                                                [style.background-color]="getColor(course.percentage)">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- CASE 2: NO DATA FOUND FOR FILTER -->
+        <div *ngIf="dashboardData.courseAttendances && dashboardData.courseAttendances.length === 0"
+            class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-folder-open"></i>
+            </div>
+            <h4>No Records Found</h4>
+            <p>
+                We couldn't find any attendance data for
+                <span class="highlight">{{ selectedYear }}</span>
+                in <span class="highlight">{{ selectedSemester === 'All' ? 'Any Semester' : 'Semester ' +
+                    selectedSemester }}</span>.
+            </p>
+            <button class="reset-btn" (click)="resetFilters()">
+                <i class="fas fa-undo"></i>
+                Reset Filters
+            </button>
+        </div>
+    </div>
+</div>
